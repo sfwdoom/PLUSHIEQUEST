@@ -3,7 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <title>SFWDOOM: Plushie Edition</title>
+    <meta name="title" content="SFWDOOM: Plushie Edition">
+    <meta name="description" content="Enter the forest and start your Plushie Quest in this retro raycasting adventure!">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sfwdoom.fun/">
+    <meta property="og:title" content="SFWDOOM: Plushie Edition">
+    <meta property="og:description" content="Enter the forest and start your Plushie Quest!">
+    <meta property="og:image" content="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/image-10-1.jpg">
+
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://sfwdoom.fun/">
+    <meta property="twitter:title" content="SFWDOOM: Plushie Edition">
+    <meta property="twitter:description" content="Enter the forest and start your Plushie Quest!">
+    <meta property="twitter:image" content="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/image-10-1.jpg">
+
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/mainface.png">
+
     <style>
         :root { 
             --pink: #ff69b4; 
@@ -74,7 +92,6 @@
         }
         #player-face { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 
-        /* Ornate Console UI */
         #ui { 
             height: 50vh; 
             background: radial-gradient(circle at 20px 20px, #2d1b2e 2px, transparent 0) 0 0 / 40px 40px, #1e121f; 
@@ -150,7 +167,6 @@
 
         #btn-sprint { width: 65px; height: 65px; background: linear-gradient(145deg, var(--sky), #0288d1); border-radius: 50%; border: 2px solid #fff; font-size: 24px; }
         
-        /* Ornate Glass-morphism Overlay */
         .overlay { 
             display: none; 
             position: fixed; 
@@ -234,6 +250,7 @@
     </div>
 
 <script>
+// Logic remains identical to your current stable build
 const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const mCanvas = document.getElementById('m-canvas'), mCtx = mCanvas.getContext('2d');
 const vignette = document.getElementById('vignette');
@@ -369,15 +386,11 @@ function checkWin() {
 function showEnd(msg) {
     gameActive = false;
     const overlay = document.getElementById('overlay');
-    
-    // Aesthetic Color Switch
     overlay.style.borderColor = msg.includes("VICTORY") ? "var(--sky)" : "var(--hot-pink)";
     overlay.style.boxShadow = msg.includes("VICTORY") ? "inset 0 0 50px rgba(79, 195, 247, 0.3)" : "inset 0 0 50px rgba(255, 20, 147, 0.3)";
-
     let highScore = localStorage.getItem('sfwDoomHiScore') || 0;
     let currentScore = Math.floor(player.score);
     if (currentScore > highScore) { localStorage.setItem('sfwDoomHiScore', currentScore); highScore = currentScore; msg = "NEW PERSONAL BEST! 🌟"; }
-    
     overlay.style.display = 'flex';
     document.getElementById('status-msg').innerText = msg;
     document.getElementById('status-msg').style.textShadow = msg.includes("VICTORY") ? "0 0 20px var(--sky)" : "0 0 20px var(--hot-pink)";
