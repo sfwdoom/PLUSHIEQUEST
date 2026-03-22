@@ -5,25 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
     <title>SFWDOOM: Plushie Edition</title>
-    <meta name="title" content="SFWDOOM: Plushie Edition">
     <meta name="description" content="Enter the forest and start your Plushie Quest in this retro raycasting adventure!">
-
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://sfwdoom.fun/">
-    <meta property="og:title" content="SFWDOOM: Plushie Edition">
-    <meta property="og:description" content="Enter the forest and start your Plushie Quest!">
-    <meta property="og:image" content="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/image-10-1.jpg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://sfwdoom.fun/">
-    <meta property="twitter:title" content="SFWDOOM: Plushie Edition">
-    <meta property="twitter:description" content="Enter the forest and start your Plushie Quest!">
-    <meta property="twitter:image" content="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/image-10-1.jpg">
-
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/mainface.png">
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/mainface.png">
 
     <style>
         :root { 
@@ -184,7 +166,7 @@
             box-shadow: inset 0 0 50px rgba(255, 20, 147, 0.3);
         }
 
-        .overlay-btns { display: flex; flex-direction: column; gap: 10px; }
+        .overlay-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
         .overlay-btns button { padding: 15px 40px; border: 2px solid #fff; border-radius: 50px; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: transform 0.2s; }
         #share-btn { background: var(--sky); box-shadow: 0 0 15px var(--sky); }
         #retry-btn { background: var(--hot-pink); box-shadow: 0 0 15px var(--hot-pink); }
@@ -273,9 +255,8 @@ const MAPS = [
 ];
 
 let levelIdx = 0, player, sprites = [], projectiles = [], particles = [], keys = {}, zBuf = new Array(400);
-let gameActive = false, attackAnim = 0, shake = 0, bob = 0, isMoving = false, isLoading = false;
+let gameActive = false, attackAnim = 0, shake = 0, bob = 0, isMoving = false, isLoading = false, maxMultSeen = 1;
 
-document.addEventListener('contextmenu', e => e.preventDefault());
 function startGame() {
     document.getElementById('start-menu').style.display = 'none';
     initGame();
@@ -284,7 +265,7 @@ function startGame() {
 
 function initGame() {
     player = { x: 0, y: 0, dir: 0, hp: 15, score: 0, combo: 0, mult: 1 };
-    levelIdx = 0; gameActive = true; particles = []; isLoading = false;
+    levelIdx = 0; gameActive = true; particles = []; isLoading = false; maxMultSeen = 1;
     document.getElementById('overlay').style.display = 'none';
     loadLevel(0);
 }
@@ -295,7 +276,7 @@ function loadLevel(idx) {
     levelIdx = idx; const l = MAPS[idx];
     player.x = l.start[0]; player.y = l.start[1];
     sprites = (l.enemies || []).map(e => ({...e, hp: 3, alive: true, lastShot: Date.now() + 2000, atkTimer: 0}));
-    if (l.boss) sprites.push({...l.boss, hp: 12, alive: true, type: 'boss', lastShot: Date.now(), atkTimer: 0});
+    if (l.boss) sprites.push({...l.boss, hp: 12, alive: true, type: 'boss', lastShot: Date.now(), atkTimer: 0, strafeDir: 1, strafeTimer: 0});
     
     if (sprites.length > 0) {
         let nearest = sprites[0], minDist = Infinity;
@@ -378,15 +359,17 @@ function showEnd(msg) {
     const overlay = document.getElementById('overlay');
     const shareBtn = document.getElementById('share-btn');
     shareBtn.innerText = "Share Your Quest 🪄"; 
-    overlay.style.borderColor = msg.includes("VICTORY") ? "var(--sky)" : "var(--hot-pink)";
-    overlay.style.boxShadow = msg.includes("VICTORY") ? "inset 0 0 50px rgba(79, 195, 247, 0.3)" : "inset 0 0 50px rgba(255, 20, 147, 0.3)";
+
+    const isWin = msg.includes("VICTORY");
+    overlay.style.borderColor = isWin ? "var(--sky)" : "var(--hot-pink)";
+    overlay.style.boxShadow = isWin ? "inset 0 0 50px rgba(79, 195, 247, 0.3)" : "inset 0 0 50px rgba(255, 20, 147, 0.3)";
     
     let highScore = localStorage.getItem('sfwDoomHiScore') || 0;
     let currentScore = Math.floor(player.score);
     if (currentScore > highScore) { 
         localStorage.setItem('sfwDoomHiScore', currentScore); 
         highScore = currentScore; 
-        msg = "NEW PERSONAL BEST! 🌟"; 
+        if(isWin) msg = "NEW PERSONAL BEST! 🌟"; 
     }
     
     overlay.style.display = 'flex';
@@ -394,20 +377,18 @@ function showEnd(msg) {
     document.getElementById('final-stats').innerHTML = `Final Score: ${currentScore}<br><span style="color:var(--pink);font-size:0.8em;">Best: ${highScore}</span>`;
 
     shareBtn.onclick = () => {
-        const text = `✨ I just scored ${currentScore} on SFWDOOM: Plushie Quest!\n📍 Current Level: ${MAPS[levelIdx].n}\n\nEnter the Forest at: https://sfwdoom.fun 🪄🧸`;
+        const comboBadge = maxMultSeen >= 5 ? "🔥 COMBO MASTER 🔥\n" : "";
+        const shareText = isWin 
+            ? `🏆 I BEAT SFWDOOM: Plushie Quest!\n${comboBadge}✨ Score: ${currentScore}\n📍 Finished at: ${MAPS[levelIdx].n}`
+            : `🧸 I got Booped on SFWDOOM: Plushie Quest!\n${comboBadge}✨ Final Score: ${currentScore}\n📍 Reached: ${MAPS[levelIdx].n}`;
         
-        // Copy to clipboard as backup
-        navigator.clipboard.writeText(text).then(() => {
+        const fullPost = `${shareText}\n\nEnter the Forest at: https://sfwdoom.fun 🪄🧸`;
+        
+        navigator.clipboard.writeText(fullPost).then(() => {
             shareBtn.innerText = "Opening X... ✨";
-            
-            // Open X (Twitter) Compose with the pre-filled text
-            const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(text)}`;
+            const xUrl = `https://x.com/intent/post?text=${encodeURIComponent(fullPost)}`;
             window.open(xUrl, '_blank');
-            
-            // Reset button text after short delay
-            setTimeout(() => {
-                shareBtn.innerText = "Share Your Quest 🪄";
-            }, 3000);
+            setTimeout(() => { shareBtn.innerText = "Share Your Quest 🪄"; }, 3000);
         });
     };
 }
@@ -441,12 +422,13 @@ function update() {
 
     isMoving = false;
     if (keys['KeyW']) { if(canMove(player.x+dx, player.y)) player.x+=dx; if(canMove(player.x, player.y+dy)) player.y+=dy; isMoving = true; }
-    if (keys['KeyS']) { if(canMove(player.x-dx, player.y)) player.x-=dx; if(canMove(player.x, player.y-dy)) player.y-=dy; isMoving = true; }
+    if (keys['KeyS']) { if(canMove(player.x-dx, player.y)) player.x-=dx; if(canMove(player.x, player.y+dy)) player.y-=dy; isMoving = true; }
 
     if (isMoving) bob += isSprinting ? 0.25 : 0.15; else bob = Math.max(0, bob - 0.1);
     vignette.style.opacity = player.hp <= 5 ? (0.4 + Math.sin(Date.now() * 0.05) * 0.4) : 0;
     player.combo = Math.max(0, player.combo - 0.1); 
     player.mult = Math.floor(player.combo / 20) + 1;
+    if(player.mult > maxMultSeen) maxMultSeen = player.mult;
 
     document.getElementById('hp-display').innerText = `❤️ x${player.hp}`;
     document.getElementById('score-display').innerText = `✨ ${Math.floor(player.score)}`;
@@ -467,15 +449,24 @@ function update() {
         let d = Math.sqrt((s.x-player.x)**2 + (s.y-player.y)**2);
         if (s.e === "🌀" && d < 0.6) checkWin();
         if (s.pickup && d < 0.6) { s.alive = false; player.hp = Math.min(45, player.hp + 5); checkWin(); }
+        
         if (s.type === 'boss') {
-            s.x += Math.cos(Math.atan2(player.y-s.y, player.x-s.x)) * (s.hp < 5 ? 0.04 : 0.02);
-            s.y += Math.sin(Math.atan2(player.y-s.y, player.x-s.x)) * (s.hp < 5 ? 0.04 : 0.02);
-        }
-        if (!s.pickup && s.e !== "🌀" && d < 8 && Date.now() - s.lastShot > 4000) {
+            // New Strafe behavior: Move up and down (Y axis) while staying at a distance
+            s.strafeTimer++;
+            if(s.strafeTimer > 60) { s.strafeDir *= -1; s.strafeTimer = 0; }
+            let sy = s.y + (s.strafeDir * 0.035);
+            if(canMove(s.x, sy)) s.y = sy;
+            
+            // Double firing rate (2000ms instead of 4000ms)
+            if (d < 12 && Date.now() - s.lastShot > 2000) {
+                let a = Math.atan2(player.y-s.y, player.x-s.x);
+                projectiles.push({x:s.x, y:s.y, vx:Math.cos(a)*.09, vy:Math.sin(a)*.09, l:150});
+                s.lastShot = Date.now(); s.atkTimer = 500;
+            }
+        } else if (!s.pickup && s.e !== "🌀" && d < 8 && Date.now() - s.lastShot > 4000) {
             let a = Math.atan2(player.y-s.y, player.x-s.x);
             projectiles.push({x:s.x, y:s.y, vx:Math.cos(a)*.08, vy:Math.sin(a)*.08, l:150});
-            s.lastShot = Date.now();
-            s.atkTimer = 500;
+            s.lastShot = Date.now(); s.atkTimer = 500;
         }
     });
 
