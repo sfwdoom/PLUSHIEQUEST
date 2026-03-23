@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SFWDOOM: Plushie Edition</title>
     <meta name="description" content="Enter the forest and start your Plushie Quest in this retro raycasting adventure!">
 
@@ -16,14 +16,16 @@
             --deep-bg: #1e121f;
         }
         
-        body { 
+        html, body { 
             margin: 0; 
+            height: 100dvh;
             background: #1a1a1a; 
             overflow: hidden; 
             font-family: 'Arial Rounded MT Bold', sans-serif; 
-            touch-action: none; 
+            touch-action: manipulation;
             -webkit-user-select: none;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         
         #start-menu { 
@@ -74,7 +76,14 @@
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
         .start-btn:active { transform: scale(0.92); }
 
-        #viewport { position: relative; width: 100vw; height: 50vh; background: #000; border-bottom: 4px solid var(--pink); overflow: hidden; }
+        #viewport { 
+            position: relative; 
+            width: 100vw; 
+            height: 55dvh; 
+            background: #000; 
+            border-bottom: 4px solid var(--pink); 
+            overflow: hidden; 
+        }
         canvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
         
         #vignette { 
@@ -112,7 +121,7 @@
         #player-face { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 
         #ui { 
-            height: 50vh; 
+            height: calc(45dvh - 6px); 
             background: radial-gradient(circle at 20px 20px, #2d1b2e 2px, transparent 0) 0 0 / 40px 40px, #1e121f; 
             display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; 
             padding: 15px; box-sizing: border-box; border-top: 6px solid var(--hot-pink);
@@ -189,6 +198,7 @@
             background: radial-gradient(circle, var(--hot-pink), #a30b5d); 
             border-radius: 50%; font-size: 15px; font-weight: bold; text-transform: uppercase;
             border: 5px solid #fff; box-shadow: 0 0 25px var(--hot-pink);
+            touch-action: manipulation;
         }
 
         .overlay { 
@@ -206,6 +216,33 @@
         }
         #share-btn { background: var(--sky); box-shadow: 0 0 20px var(--sky); }
         #retry-btn { background: var(--hot-pink); box-shadow: 0 0 20px var(--hot-pink); }
+
+        /* LANDSCAPE OPTIMIZATION - prevents controls from being obscured */
+        @media (orientation: landscape) {
+            #viewport {
+                height: 67dvh;
+            }
+            #ui {
+                height: calc(33dvh - 6px);
+                padding: 10px 15px;
+            }
+            #joystick-container {
+                width: 150px;
+                height: 150px;
+            }
+            #joystick-knob {
+                width: 56px;
+                height: 56px;
+            }
+            #btn-boop {
+                width: 100px;
+                height: 100px;
+                font-size: 14px;
+            }
+            #controls {
+                padding: 0 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -374,6 +411,7 @@ window.onkeyup = e => keys[e.code] = false;
 
 const boopBtn = document.getElementById('btn-boop');
 boopBtn.addEventListener('pointerdown', e => { e.preventDefault(); doBoop(); });
+boopBtn.addEventListener('touchstart', e => { e.preventDefault(); doBoop(); }, { passive: false });
 
 // JOYSTICK
 function setupJoystick() {
@@ -762,6 +800,13 @@ function drawMinimap() {
 }
 
 function loop() { if(gameActive) { update(); draw(); } requestAnimationFrame(loop); }
+
+// MOBILE FIX: force dvh refresh on rotation (prevents any remaining layout shift)
+function handleResize() {
+    document.documentElement.style.height = '100dvh';
+}
+window.addEventListener('resize', handleResize);
+window.addEventListener('orientationchange', () => setTimeout(handleResize, 150));
 </script>
 </body>
 </html>
