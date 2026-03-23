@@ -82,7 +82,6 @@
             flex: 1;
             position: relative; 
             background: #000; 
-            border-bottom: 4px solid var(--pink); 
             overflow: hidden; 
             min-height: 0;
         }
@@ -112,6 +111,7 @@
         #minimap-container { 
             position: absolute; top: 10px; right: 10px; width: 80px; height: 80px; 
             background: rgba(0,0,0,0.7); border: 3px solid var(--pink); border-radius: 10px; overflow: hidden; 
+            z-index: 15;
         }
         #m-canvas { width: 100%; height: 100%; }
 
@@ -119,57 +119,62 @@
             position: absolute; top: 95px; right: 10px; width: 80px; height: 80px; 
             background: rgba(255, 182, 193, 0.35); border: 3px solid var(--pink); border-radius: 10px; 
             overflow: hidden; display: flex; align-items: center; justify-content: center; 
+            z-index: 15;
         }
         #player-face { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 
-        #ui { 
-            flex-shrink: 0;
-            background: radial-gradient(circle at 20px 20px, #2d1b2e 2px, transparent 0) 0 0 / 40px 40px, #1e121f; 
-            display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; 
-            padding: 12px 15px;
-            padding-bottom: max(22px, env(safe-area-inset-bottom));
-            box-sizing: border-box; 
-            border-top: 6px solid var(--hot-pink);
-        }
-        
-        #hud { 
-            display: flex; flex-direction: column; align-items: center; 
-            background: rgba(0, 0, 0, 0.65); padding: 12px; border-radius: 15px; 
-            border: 3px solid var(--pink); width: 90%; max-width: 460px; 
-            box-shadow: 0 0 20px var(--hot-pink); backdrop-filter: blur(6px);
-        }
-
-        #stats-bar { 
-            display: flex; width: 100%; justify-content: space-between; align-items: center; 
-            font-family: 'Courier New', monospace; font-weight: 900; color: #fff; 
-            text-shadow: 0 0 10px var(--hot-pink); margin-bottom: 10px; font-size: 15px;
+        /* === OVERLAY HUD (top) === */
+        #top-hud-overlay {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            opacity: 0.92;
+            background: rgba(0, 0, 0, 0.55);
+            border: 3px solid var(--pink);
+            border-radius: 15px;
+            padding: 8px 14px;
+            box-shadow: 0 0 20px var(--hot-pink);
+            backdrop-filter: blur(8px);
+            max-width: 92%;
         }
 
-        #combo-meter { width: 100%; height: 14px; background: rgba(255,255,255,0.1); border: 2px solid var(--sky); border-radius: 8px; overflow: hidden; }
-        #combo-fill { 
-            height: 100%; width: 0%; 
-            background: linear-gradient(90deg, var(--sky), var(--hot-pink)); 
-            box-shadow: 0 0 15px var(--hot-pink); transition: width 0.1s linear; 
+        /* === OVERLAY CONTROLS (bottom) — semi-transparent as requested === */
+        #bottom-controls-overlay {
+            position: absolute;
+            bottom: max(12px, env(safe-area-inset-bottom));
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 18px 8px;
+            z-index: 20;
+            opacity: 0.72;
+            pointer-events: none;
         }
-        
-        #controls { 
+        #bottom-controls-overlay > * {
+            pointer-events: auto;
+        }
+
+        #controls {
             display: flex; 
             width: 100%; 
             max-width: 560px; 
             justify-content: space-between; 
-            align-items: center; 
-            padding: 0 22px;
+            align-items: center;
         }
 
         #joystick-container {
-            width: 170px;
-            height: 170px;
+            width: 168px;
+            height: 168px;
             position: relative;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.12);
             border: 5px solid var(--pink);
             border-radius: 50%;
             touch-action: none;
-            box-shadow: 0 0 30px rgba(255,20,147,0.4);
+            box-shadow: 0 0 30px rgba(255,20,147,0.45);
         }
         #joystick-knob {
             position: absolute;
@@ -199,7 +204,7 @@
         .btn:active { transform: scale(0.92); box-shadow: 2px 2px 8px rgba(0,0,0,0.6); background: var(--hot-pink); }
         
         #btn-boop { 
-            width: 110px; height: 110px; 
+            width: 108px; height: 108px; 
             background: radial-gradient(circle, var(--hot-pink), #a30b5d); 
             border-radius: 50%; 
             font-size: 15px; 
@@ -207,6 +212,25 @@
             text-transform: uppercase;
             border: 5px solid #fff; 
             box-shadow: 0 0 25px var(--hot-pink);
+        }
+
+        /* HUD inside top overlay */
+        #hud { 
+            display: flex; flex-direction: column; align-items: center; 
+            width: 100%; max-width: 460px;
+        }
+
+        #stats-bar { 
+            display: flex; width: 100%; justify-content: space-between; align-items: center; 
+            font-family: 'Courier New', monospace; font-weight: 900; color: #fff; 
+            text-shadow: 0 0 10px var(--hot-pink); margin-bottom: 8px; font-size: 15px;
+        }
+
+        #combo-meter { width: 100%; height: 14px; background: rgba(255,255,255,0.1); border: 2px solid var(--sky); border-radius: 8px; overflow: hidden; }
+        #combo-fill { 
+            height: 100%; width: 0%; 
+            background: linear-gradient(90deg, var(--sky), var(--hot-pink)); 
+            box-shadow: 0 0 15px var(--hot-pink); transition: width 0.1s linear; 
         }
 
         .overlay { 
@@ -225,39 +249,13 @@
         #share-btn { background: var(--sky); box-shadow: 0 0 20px var(--sky); }
         #retry-btn { background: var(--hot-pink); box-shadow: 0 0 20px var(--hot-pink); }
 
-        /* === LANDSCAPE: MUCH BIGGER GAME + COMPACT CONTROLS === */
+        /* Landscape tweaks for even bigger game area */
         @media (orientation: landscape) {
-            #viewport {
-                flex: 2.8; /* significantly larger game canvas */
-            }
-            #ui {
-                flex: 1;
-                padding: 6px 15px;
-                padding-bottom: max(10px, env(safe-area-inset-bottom));
-            }
-            #hud {
-                padding: 8px;
-            }
-            #stats-bar {
-                font-size: 13px;
-                margin-bottom: 6px;
-            }
-            #controls {
-                padding: 0 12px;
-            }
-            #joystick-container {
-                width: 115px;
-                height: 115px;
-            }
-            #joystick-knob {
-                width: 48px;
-                height: 48px;
-            }
-            #btn-boop {
-                width: 82px;
-                height: 82px;
-                font-size: 12px;
-            }
+            #top-hud-overlay { top: 8px; padding: 6px 12px; }
+            #joystick-container { width: 138px; height: 138px; }
+            #joystick-knob { width: 54px; height: 54px; }
+            #btn-boop { width: 88px; height: 88px; font-size: 13px; }
+            #bottom-controls-overlay { padding: 0 14px 6px; }
         }
     </style>
 </head>
@@ -278,23 +276,28 @@
         <div id="face-hud">
             <img id="player-face" src="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/mainface.png" alt="Status">
         </div>
-    </div>
-    
-    <div id="ui">
-        <div id="hud">
-            <div id="stats-bar">
-                <div id="hp-display">❤️ x15</div>
-                <div id="score-display">✨ 0</div>
-                <div id="hi-display" style="font-size: 11px; opacity: 0.85;">🏆 0</div>
-                <div id="mult-display">x1</div>
+
+        <!-- Top HUD overlay -->
+        <div id="top-hud-overlay">
+            <div id="hud">
+                <div id="stats-bar">
+                    <div id="hp-display">❤️ x15</div>
+                    <div id="score-display">✨ 0</div>
+                    <div id="hi-display" style="font-size: 11px; opacity: 0.85;">🏆 0</div>
+                    <div id="mult-display">x1</div>
+                </div>
+                <div id="combo-meter"><div id="combo-fill"></div></div>
             </div>
-            <div id="combo-meter"><div id="combo-fill"></div></div>
         </div>
-        <div id="controls">
-            <div id="joystick-container">
-                <div id="joystick-knob"></div>
+
+        <!-- Bottom touch controls overlay (semi-transparent) -->
+        <div id="bottom-controls-overlay">
+            <div id="controls">
+                <div id="joystick-container">
+                    <div id="joystick-knob"></div>
+                </div>
+                <button class="btn" id="btn-boop">BOOP!</button>
             </div>
-            <button class="btn" id="btn-boop">BOOP!</button>
         </div>
     </div>
 
