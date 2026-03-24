@@ -282,7 +282,6 @@
             <img id="player-face" src="https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/mainface.png" alt="Status">
         </div>
 
-        <!-- Top HUD overlay -->
         <div id="top-hud-overlay">
             <div id="hud">
                 <div id="stats-bar">
@@ -295,7 +294,6 @@
             </div>
         </div>
 
-        <!-- Bottom touch controls overlay (semi-transparent) -->
         <div id="bottom-controls-overlay">
             <div id="controls">
                 <div id="joystick-container">
@@ -319,6 +317,12 @@
 const canvas = document.getElementById('c'), ctx = canvas.getContext('2d');
 const mCanvas = document.getElementById('m-canvas'), mCtx = mCanvas.getContext('2d');
 const vignette = document.getElementById('vignette');
+
+// OFFSCREEN CANVAS FOR PROCEDURAL WALL TEXTURE
+const pCanvas = document.createElement('canvas');
+pCanvas.width = 256; pCanvas.height = 256;
+const pCtx = pCanvas.getContext('2d');
+
 canvas.width = 400; canvas.height = 300; mCanvas.width = 80; mCanvas.height = 80;
 
 let audioCtx;
@@ -377,7 +381,7 @@ const MAPS = [
 let levelIdx = 0, player, sprites = [], projectiles = [], particles = [], keys = {}, zBuf = new Array(400);
 let gameActive = false, attackAnim = 0, shake = 0, bob = 0, isMoving = false, isLoading = false, maxMultSeen = 1;
 let levelTransitioning = false;
-let portalActive = false;  // ← NEW: controls when the portal becomes visible
+let portalActive = false;  
 
 // TOUCH CONTROLS
 let joyActive = false;
@@ -405,7 +409,7 @@ function startGame() {
 function initGame() {
     player = { x: 0, y: 0, dir: 0, hp: 15, score: 0, combo: 0, mult: 1 };
     levelIdx = 0; gameActive = true; particles = []; isLoading = false; maxMultSeen = 1; levelTransitioning = false;
-    portalActive = false;  // reset for new game
+    portalActive = false;  
     document.getElementById('overlay').style.display = 'none';
     loadLevel(0);
 }
@@ -417,7 +421,7 @@ function loadLevel(idx) {
     
     levelIdx = idx; const l = MAPS[idx];
     player.x = l.start[0]; player.y = l.start[1];
-    portalActive = false;  // ← ensures portal is hidden at start of every level
+    portalActive = false;  
     
     sprites = (l.enemies || []).map(e => ({...e, hp: 3, alive: true, lastShot: Date.now() + 2000, atkTimer: 0}));
     if (l.boss) sprites.push({...l.boss, hp: 12, alive: true, type: 'boss', lastShot: Date.now(), atkTimer: 0, strafeDir: 1, strafeTimer: 0});
@@ -519,7 +523,7 @@ function doBoop() {
         let angToEnemy = Math.atan2(s.y - player.y, s.x - player.x);
         let angleDiff = Math.abs(angToEnemy - player.dir);
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-        if (s.alive && d < 6 && angleDiff < 0.85 && !s.pickup && s.e !== "🌀") {
+        if (s.alive && d < 6 && angleDiff < 0.85 && !s.pickup) {
             s.hp--;
             playSound('triangle', 520, 95, 0.19);
             player.combo = Math.min(100, player.combo + 28);
@@ -543,21 +547,29 @@ function spawnParticles(x, y, char, count) {
 }
 
 function checkWin() {
-    const enemiesRemaining = sprites.some(s => s.alive && !s.pickup && s.e !== "🌀");
+    const enemiesRemaining = sprites.some(s => s.alive && !s.pickup);
     if (!enemiesRemaining) {
         if (levelIdx === 4) {
             showEnd("VICTORY! 🏆");
             return;
         }
         if (!portalActive) {
-            let exitX = 6.5, exitY = 5.5;
-            if (levelIdx === 2) { exitX = 7.5; exitY = 3.5; }
-            if (levelIdx === 3) { exitX = 2.5; exitY = 2.5; }
+            let exitX = 6.5, exitY = 5.5; // Level 0
+            if (levelIdx === 1) { exitX = 6.5; exitY = 1.5; } // Level 1
+            if (levelIdx === 2) { exitX = 7.5; exitY = 3.5; } // Level 2
+            
+            // Level 3 (Sugar Sanctuary) - BUG FIX
+            // Shifted the portal coordinates into the solid North wall so the player
+            // cannot spawn directly inside the wall block and glitch the texture.
+            if (levelIdx === 3) { exitX = 2.5; exitY = 0.5; } 
+            
             const map = MAPS[levelIdx].m;
             const tx = Math.floor(exitX), ty = Math.floor(exitY);
-            if (map[ty] && map[ty][tx] === 0) map[ty][tx] = 9;
-            sprites.push({x: exitX, y: exitY, e: "🌀", alive: true, scale: 2.0});
-            portalActive = true;  // ← PORTAL IS NOW VISIBLE!
+            
+            // Re-activate the wall block cleanly by checking if the array index exists
+            if (map[ty] && map[ty][tx] !== undefined) map[ty][tx] = 9;
+            
+            portalActive = true; 
 
             // Magical reveal effect
             playSound('sine', 880, 120, 0.32);
@@ -626,7 +638,7 @@ function update() {
         let nx = Math.floor(x), ny = Math.floor(y);
         if (!map[ny] || map[ny][nx] === undefined) return false;
         if (map[ny][nx] === 9) {
-            const noEnemies = !sprites.some(s => s.alive && !s.pickup && s.e !== "🌀");
+            const noEnemies = !sprites.some(s => s.alive && !s.pickup);
             if (noEnemies && !levelTransitioning) {
                 loadLevel(levelIdx + 1);
             }
@@ -688,10 +700,6 @@ function update() {
         if (s.atkTimer > 0) s.atkTimer -= 16;
         let d = Math.sqrt((s.x-player.x)**2 + (s.y-player.y)**2);
         
-        if (s.e === "🌀" && d < 0.6) {
-            loadLevel(levelIdx + 1);
-            return;
-        }
         if (s.pickup && d < 0.6) { 
             s.alive = false; 
             player.hp = Math.min(45, player.hp + 5); 
@@ -712,7 +720,7 @@ function update() {
                 projectiles.push({x:s.x, y:s.y, vx:Math.cos(a)*0.095, vy:Math.sin(a)*0.095, l:150});
                 s.lastShot = Date.now(); s.atkTimer = 480;
             }
-        } else if (!s.pickup && s.e !== "🌀" && d < 8 && Date.now() - s.lastShot > 3900) {
+        } else if (!s.pickup && d < 8 && Date.now() - s.lastShot > 3900) {
             let a = Math.atan2(player.y-s.y, player.x-s.x);
             projectiles.push({x:s.x, y:s.y, vx:Math.cos(a)*0.085, vy:Math.sin(a)*0.085, l:150});
             s.lastShot = Date.now(); s.atkTimer = 480;
@@ -734,7 +742,43 @@ function update() {
     particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.l -= 0.035; if (p.l <= 0) particles.splice(i, 1); });
 }
 
+// Draw the live animated texture to the offscreen canvas
+function updatePortalTexture() {
+    let t = Date.now() * 0.002;
+    let c = 128; // Center of the 256x256 texture
+    
+    // Deep void background for the wall tile
+    pCtx.fillStyle = "#0a0515";
+    pCtx.fillRect(0, 0, 256, 256);
+    
+    let pulse = 1 + Math.sin(t * 2) * 0.08;
+    
+    // Draw the procedural glow
+    let rg = pCtx.createRadialGradient(c, c, 0, c, c, 128 * pulse);
+    rg.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+    rg.addColorStop(0.4, "rgba(79, 195, 247, 0.8)"); 
+    rg.addColorStop(0.7, "rgba(255, 20, 147, 0.5)"); 
+    rg.addColorStop(1, "rgba(0, 0, 0, 0)");
+    pCtx.fillStyle = rg;
+    pCtx.fillRect(0, 0, 256, 256);
+
+    // Draw the flat, square image seal over the glow
+    if (assets.portal.complete) {
+        let imgSize = 230 * pulse; 
+        pCtx.drawImage(assets.portal, c - imgSize/2, c - imgSize/2, imgSize, imgSize);
+    }
+
+    // Draw the active pulsating core
+    pCtx.fillStyle = "rgba(255, 255, 255, " + (0.5 + Math.sin(t*4)*0.3) + ")";
+    pCtx.beginPath();
+    pCtx.arc(c, c, 25 * pulse, 0, Math.PI * 2); 
+    pCtx.fill();
+}
+
 function draw() {
+    // 1. Update the live wall texture first
+    if (portalActive) updatePortalTexture();
+
     ctx.save();
     let currentBob = Math.sin(bob) * 11;
     ctx.translate(0, currentBob);
@@ -773,23 +817,18 @@ function draw() {
         let wallX = (side === 0) ? (player.y + rayY*d) : (player.x + rayX*d);
         wallX -= Math.floor(wallX);
 
-        const wallTex = (hit === 9) ? assets.portal : tex;
+        // Map tile 9 uses the live, offscreen animated canvas!
+        const wallTex = (hit === 9) ? pCanvas : tex;
         let texWidth = wallTex.width || 1;
         let texX = Math.floor(wallX * texWidth);
         if (side === 0 && rayX > 0) texX = texWidth - texX - 1;
         if (side === 1 && rayY < 0) texX = texWidth - texX - 1;
 
         ctx.globalAlpha = Math.max(0.18, 1 - (d / 12));
-        
         ctx.drawImage(wallTex, texX, 0, 1, wallTex.height, i, 150 - h/2, 1, h);
         
         if (side === 1 && hit !== 9) {
             ctx.fillStyle = "rgba(0,0,0,0.35)";
-            ctx.fillRect(i, 150 - h/2, 1, h);
-        }
-        
-        if (hit === 9) {
-            ctx.fillStyle = "rgba(255, 220, 140, 0.25)";
             ctx.fillRect(i, 150 - h/2, 1, h);
         }
         
@@ -804,14 +843,17 @@ function draw() {
         if (Math.abs(ang) < 0.8) {
             let sx = (ang + 0.5) * 400;
             if (zBuf[Math.floor(sx)] > dist) {
-                let sz = 300 / dist * (s.scale || (s.type === 'boss' ? 2.6 : 1));
+                
+                let safeDist = Math.max(dist, 0.25); 
+                let sz = 300 / safeDist * (s.scale || (s.type === 'boss' ? 2.6 : 1));
+                
                 ctx.globalAlpha = s.l || 1;
+                
                 if (s.e === "BEAR") ctx.drawImage(s.atkTimer > 0 ? assets.bearAtk : assets.bearIdle, sx - sz/2, 150 - sz/2, sz, sz);
                 else if (s.e === "SMALL") ctx.drawImage(s.atkTimer > 0 ? assets.smallAtk : assets.smallIdle, sx - sz/2, 150 - sz/2, sz, sz);
                 else if (s.e === "PRED") ctx.drawImage(s.atkTimer > 0 ? assets.predAtk : assets.predIdle, sx - sz/2, 150 - sz/2, sz, sz);
                 else if (s.e === "🐘") ctx.drawImage(s.atkTimer > 0 ? assets.elephantAtk : assets.elephantIdle, sx - sz/2, 150 - sz/2, sz, sz);
                 else if (s.e === "BOSS_FINAL") ctx.drawImage(s.atkTimer > 0 ? assets.bossAtk : assets.bossIdle, sx - sz/2, 150 - sz/2, sz, sz);
-                else if (s.e === "🌀") { ctx.font = `${sz}px serif`; ctx.textAlign = "center"; ctx.fillText(s.e, sx, 150 + sz/2); }
                 else { ctx.font = `${sz}px serif`; ctx.textAlign = "center"; ctx.fillText(s.e || "✨", sx, 150 + sz/2); }
                 ctx.globalAlpha = 1;
             }
@@ -831,10 +873,23 @@ function draw() {
 function drawMinimap() {
     mCtx.clearRect(0,0,80,80);
     const map = MAPS[levelIdx].m, cw = 80 / map[0].length, ch = 80 / map.length;
-    mCtx.fillStyle = "rgba(255,255,255,0.25)";
-    for(let y=0; y<map.length; y++) for(let x=0; x<map[y].length; x++) if(map[y][x]) mCtx.fillRect(x*cw, y*ch, cw, ch);
+    
+    // Draw map tiles
+    for(let y=0; y<map.length; y++) {
+        for(let x=0; x<map[y].length; x++) {
+            if (map[y][x] === 1) {
+                mCtx.fillStyle = "rgba(255,255,255,0.25)";
+                mCtx.fillRect(x*cw, y*ch, cw, ch);
+            } else if (map[y][x] === 9) {
+                // Give the active portal wall block a cyan color on the minimap
+                mCtx.fillStyle = "#00ffff"; 
+                mCtx.fillRect(x*cw, y*ch, cw, ch);
+            }
+        }
+    }
+    
     sprites.forEach(s => { if(s.alive) {
-        mCtx.fillStyle = (s.pickup || s.e === "🌀") ? "#00ffff" : "#ff3366";
+        mCtx.fillStyle = s.pickup ? "#00ffff" : "#ff3366";
         mCtx.beginPath(); mCtx.arc(s.x*cw, s.y*ch, 2.5, 0, Math.PI*2); mCtx.fill();
     }});
     mCtx.fillStyle = "#44ff88"; mCtx.beginPath(); mCtx.arc(player.x*cw, player.y*ch, 3.5, 0, Math.PI*2); mCtx.fill();
