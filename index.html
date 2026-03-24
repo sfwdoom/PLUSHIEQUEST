@@ -347,7 +347,8 @@ const assets = {
     predIdle: new Image(), predAtk: new Image(),
     elephantIdle: new Image(), elephantAtk: new Image(),
     bossIdle: new Image(), bossAtk: new Image(),
-    wall1: new Image(), wall2: new Image(), wall3: new Image()
+    wall1: new Image(), wall2: new Image(), wall3: new Image(),
+    portal: new Image()
 };
 
 assets.bearIdle.src = 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/image0-4-1.png';
@@ -363,6 +364,7 @@ assets.bossAtk.src = 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/hea
 assets.wall1.src = 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/wall2.jpg';
 assets.wall2.src = 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/wall%20area%201.png';
 assets.wall3.src = 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/wall3.jpg';
+assets.portal.src = 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/image%20(1).jpg';
 
 const MAPS = [
     { n: "The Fuzzy Forest", tex: assets.wall1, m: [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,1,1,1,0,1,0,1],[1,0,0,0,0,1,0,1],[1,1,1,1,0,1,0,1],[1,0,0,0,0,0,0,1],[1,1,1,1,1,1,1,1]], start: [1.5,1.5], enemies: [{x:6.5,y:1.5,e:"BEAR"},{x:4.5,y:5.5,e:"SMALL"}] },
@@ -375,6 +377,7 @@ const MAPS = [
 let levelIdx = 0, player, sprites = [], projectiles = [], particles = [], keys = {}, zBuf = new Array(400);
 let gameActive = false, attackAnim = 0, shake = 0, bob = 0, isMoving = false, isLoading = false, maxMultSeen = 1;
 let levelTransitioning = false;
+let portalActive = false;  // ← NEW: controls when the portal becomes visible
 
 // TOUCH CONTROLS
 let joyActive = false;
@@ -402,6 +405,7 @@ function startGame() {
 function initGame() {
     player = { x: 0, y: 0, dir: 0, hp: 15, score: 0, combo: 0, mult: 1 };
     levelIdx = 0; gameActive = true; particles = []; isLoading = false; maxMultSeen = 1; levelTransitioning = false;
+    portalActive = false;  // reset for new game
     document.getElementById('overlay').style.display = 'none';
     loadLevel(0);
 }
@@ -413,6 +417,7 @@ function loadLevel(idx) {
     
     levelIdx = idx; const l = MAPS[idx];
     player.x = l.start[0]; player.y = l.start[1];
+    portalActive = false;  // ← ensures portal is hidden at start of every level
     
     sprites = (l.enemies || []).map(e => ({...e, hp: 3, alive: true, lastShot: Date.now() + 2000, atkTimer: 0}));
     if (l.boss) sprites.push({...l.boss, hp: 12, alive: true, type: 'boss', lastShot: Date.now(), atkTimer: 0, strafeDir: 1, strafeTimer: 0});
@@ -544,16 +549,21 @@ function checkWin() {
             showEnd("VICTORY! 🏆");
             return;
         }
-        if (!sprites.some(s => s.e === "🌀")) {
+        if (!portalActive) {
             let exitX = 6.5, exitY = 5.5;
-            if (levelIdx === 2) { exitX = 8.5; exitY = 3.5; }
+            if (levelIdx === 2) { exitX = 7.5; exitY = 3.5; }
             if (levelIdx === 3) { exitX = 2.5; exitY = 2.5; }
             const map = MAPS[levelIdx].m;
             const tx = Math.floor(exitX), ty = Math.floor(exitY);
             if (map[ty] && map[ty][tx] === 0) map[ty][tx] = 9;
             sprites.push({x: exitX, y: exitY, e: "🌀", alive: true, scale: 2.0});
+            portalActive = true;  // ← PORTAL IS NOW VISIBLE!
+
+            // Magical reveal effect
             playSound('sine', 880, 120, 0.32);
             setTimeout(() => playSound('sine', 1320, 250, 0.28), 80);
+            spawnParticles(exitX, exitY, "✨", 25);
+            spawnParticles(exitX, exitY, "🌟", 12);
         }
     }
 }
@@ -762,20 +772,27 @@ function draw() {
 
         let wallX = (side === 0) ? (player.y + rayY*d) : (player.x + rayX*d);
         wallX -= Math.floor(wallX);
-        let texX = Math.floor(wallX * tex.width);
-        if (side === 0 && rayX > 0) texX = tex.width - texX - 1;
-        if (side === 1 && rayY < 0) texX = tex.width - texX - 1;
+
+        const wallTex = (hit === 9) ? assets.portal : tex;
+        let texWidth = wallTex.width || 1;
+        let texX = Math.floor(wallX * texWidth);
+        if (side === 0 && rayX > 0) texX = texWidth - texX - 1;
+        if (side === 1 && rayY < 0) texX = texWidth - texX - 1;
 
         ctx.globalAlpha = Math.max(0.18, 1 - (d / 12));
-        if (hit === 9) {
-            ctx.fillStyle = "#fff"; ctx.fillRect(i, 150 - h/2, 1, h);
-        } else {
-            ctx.drawImage(tex, texX, 0, 1, tex.height, i, 150 - h/2, 1, h);
-            if (side === 1) {
-                ctx.fillStyle = "rgba(0,0,0,0.35)";
-                ctx.fillRect(i, 150 - h/2, 1, h);
-            }
+        
+        ctx.drawImage(wallTex, texX, 0, 1, wallTex.height, i, 150 - h/2, 1, h);
+        
+        if (side === 1 && hit !== 9) {
+            ctx.fillStyle = "rgba(0,0,0,0.35)";
+            ctx.fillRect(i, 150 - h/2, 1, h);
         }
+        
+        if (hit === 9) {
+            ctx.fillStyle = "rgba(255, 220, 140, 0.25)";
+            ctx.fillRect(i, 150 - h/2, 1, h);
+        }
+        
         ctx.globalAlpha = 1;
     }
 
