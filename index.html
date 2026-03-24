@@ -43,6 +43,7 @@
             align-items: center; 
             justify-content: center; 
             color: white; 
+            overflow-y: auto;
         }
 
         .logo-container { text-align: center; margin-bottom: 30px; pointer-events: none; }
@@ -258,7 +259,34 @@
         #share-btn { background: var(--sky); box-shadow: 0 0 20px var(--sky); }
         #retry-btn { background: var(--hot-pink); box-shadow: 0 0 20px var(--hot-pink); }
 
-        @media (orientation: landscape) {
+        /* LANDSCAPE FIX FOR MOBILE MENU */
+        @media (orientation: landscape) and (max-height: 450px) {
+            #start-menu {
+                padding: 10px;
+                justify-content: flex-start;
+            }
+            .logo-container { margin-bottom: 8px; }
+            .logo-main { font-size: 34px; }
+            .logo-sub { font-size: 12px; letter-spacing: 3px; }
+            #start-menu h2 { font-size: 16px !important; margin: 0 0 10px 0 !important; }
+            #start-menu div[style*="text-align:center"] {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+                max-width: 95% !important;
+                margin-bottom: 10px !important;
+            }
+            .diff-btn {
+                width: 180px;
+                padding: 10px 15px;
+                font-size: 14px;
+                margin: 0;
+            }
+            .diff-btn small { display: none; }
+            
+            /* Viewport specific controls adjustments for landscape */
             #top-hud-overlay { top: 8px; padding: 6px 12px; }
             #joystick-container { width: 138px; height: 138px; }
             #joystick-knob { width: 54px; height: 54px; }
@@ -714,7 +742,7 @@ function update() {
     faceImg.src = hpP > 75 ? 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/mainface.png' :
                   hpP > 50 ? 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/Gemini_Generated_Image_k7jgubk7jgubk7jg-Photoroom.png' :
                   hpP > 25 ? 'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/Gemini_Generated_Image_oo1o3too1o3too1o-Photoroom.png' :
-                             'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/Gemini_Generated_Image_zh1zaqzh1zaqzh1z-Photoroom.png';
+                               'https://raw.githubusercontent.com/sfwdoom/SFWDOOM/refs/heads/photos/Gemini_Generated_Image_zh1zaqzh1zaqzh1z-Photoroom.png';
 
     sprites.forEach(s => {
         if (!s.alive) return;
@@ -739,7 +767,6 @@ function update() {
     projectiles.forEach((p, i) => {
         p.x += p.vx; p.y += p.vy; p.l--;
         if (Math.sqrt((p.x-player.x)**2 + (p.y-player.y)**2) < 0.45) {
-            // CLEARER INTEGER DAMAGE SO YOU FEEL THE DIFFERENCE
             const damage = difficultyMult === 1.0 ? 1 : (difficultyMult === 1.5 ? 2 : 3);
             player.hp -= damage;
             player.combo = 0; shake = 1.1;
