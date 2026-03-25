@@ -1,4 +1,4 @@
-# ***SFWDOOM Changelog (3-22-26)***
+# ***SFWDOOM Changelog***
 
 **Repository:** https://github.com/sfwdoom/SFWDOOM  
 **Project:** Single-file HTML5 raycasting game — a wholesome “Plushie Edition” of DOOM. Fully playable at https://sfwdoom.fun.
