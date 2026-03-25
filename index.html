@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <title>SFWDOOM: Plushie Quest Pro</title>
     <meta name="description" content="Enter the forest and start your Plushie Quest in this optimized retro raycasting adventure!">
@@ -31,6 +32,16 @@
             -webkit-tap-highlight-color: transparent;
             display: flex;
             flex-direction: column;
+        }
+
+        /* iOS Fullscreen Fallback Class */
+        .ios-fullscreen-fix {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            z-index: 9999 !important;
         }
         
         #start-menu { 
@@ -542,25 +553,50 @@ function togglePause() {
     }
 }
 
+/** * FIXED FULLSCREEN LOGIC FOR IOS
+ */
 function toggleFullscreen() {
     const doc = window.document;
     const docEl = doc.documentElement;
-    const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
-    const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
-    if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-        if (requestFullScreen) requestFullScreen.call(docEl);
+    const vp = document.getElementById('viewport');
+
+    const requestFullScreen = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+    const cancelFullScreen = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+
+    // Check if browser supports Fullscreen API (Desktop, Android, iPad)
+    if (requestFullScreen) {
+        if (!doc.fullscreenElement && !doc.webkitFullscreenElement && !doc.mozFullScreenElement && !doc.msFullscreenElement) {
+            requestFullScreen.call(docEl).catch(err => {
+                console.warn("Fullscreen request failed, applying iOS fallback.");
+                applyiOSFullscreenFallback(vp);
+            });
+        } else {
+            if (cancelFullScreen) cancelFullScreen.call(doc);
+            vp.classList.remove('ios-fullscreen-fix');
+        }
     } else {
-        if (cancelFullScreen) cancelFullScreen.call(doc);
+        // Fallback for iPhone/iOS Safari
+        applyiOSFullscreenFallback(vp);
     }
 }
 
-// Fullscreen fix for touch devices
+function applyiOSFullscreenFallback(el) {
+    if (el.classList.contains('ios-fullscreen-fix')) {
+        el.classList.remove('ios-fullscreen-fix');
+    } else {
+        el.classList.add('ios-fullscreen-fix');
+        // iOS Safari address bar fix: scroll to top to hide UI
+        window.scrollTo(0, 0);
+    }
+}
+
+// Fullscreen fix for touch devices - Using pointerdown + passive:false for immediate iOS response
 const fsBtn = document.getElementById('fullscreen-toggle');
 fsBtn.addEventListener('pointerdown', e => {
     e.preventDefault();
     e.stopPropagation();
     toggleFullscreen();
-});
+}, { passive: false });
 
 function selectDifficulty(mult) {
     difficultyMult = mult;
