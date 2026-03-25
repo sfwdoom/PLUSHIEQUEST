@@ -1,17 +1,19 @@
 # ***SFWDOOM Changelog***
 
-**Repository:** https://github.com/sfwdoom/SFWDOOM  
+**Repository:** https://github.com/sfwdoom/SFWDOOM
 **Project:** Single-file HTML5 raycasting game — a wholesome “Plushie Edition” of DOOM. Fully playable at https://sfwdoom.fun.
 
-**March 24, 2024**
-- Visual Polishing: Optimized "Poof" animations for boss-tier enemies and reduced frame flickering during death transitions.
-- Maintenance: Merged GCC 13 compatibility fixes and purged legacy "bloody" sprite pointers from source headers.
-- Stability: Fixed a crash triggered by player "vanishing" (gibbing) while using the Invulnerability Power-up.
+**March 24, 2026**
+- Gameplay: Added Boss health bars, difficulty selection, and "Fish Eye" effects.
+- Fixes: Improved portal animations and patched Sugar Sanctuary.
+- Mobile/UI: Implemented iOS fullscreen fallback, added Pause/Fullscreen buttons, and optimized the Landscape start menu.
+- Visuals: Updated player face assets and refined button styles.
 
-**March 23, 2024**
-- Sprite Overhaul: Replaced "crushed corpse" sprites with SFW alternatives (boxes/puddles) and adjusted hitbox logic for invisible enemies.
-- New Features: Added a toggle for "Office Mode" (enemies turn into furniture) and updated Linux compilation guides in the README.
-- Audio Update: Replaced gore-related "splat" sounds with neutral "thuds" and "slides."
+**March 23, 2026**
+- Architecture: Major refactor of HTML/CSS for improved layout stability.
+- Responsiveness: Enhanced mobile viewport settings and refined landscape orientation for better button access.
+- Assets: Added initial portal assets and visibility controls.
+- UI: Streamlined overlays and global UI styles in index.html.
 
 **March 22, 2026**  
 - Added virtual joystick & D-pad (major mobile/desktop control upgrade)  
