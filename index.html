@@ -193,6 +193,8 @@
             align-items: center;
             justify-content: center;
             font-size: 20px;
+            pointer-events: auto;
+            touch-action: none;
         }
         #pause-toggle { left: 10px; }
         #fullscreen-toggle { left: 64px; }
@@ -219,12 +221,13 @@
             left: 0;
             width: 100%;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             padding: 0 18px 8px;
             z-index: 20;
             opacity: 0.72;
             pointer-events: none;
+            box-sizing: border-box;
         }
         #bottom-controls-overlay > * { pointer-events: auto; }
 
@@ -318,7 +321,17 @@
         #share-btn { background: var(--sky); box-shadow: 0 0 20px var(--sky); }
         #retry-btn, #resume-btn { background: var(--hot-pink); box-shadow: 0 0 20px var(--hot-pink); }
 
-        /* Landscape Start Menu Optimization */
+        /* Landscape Optimization */
+        @media (orientation: landscape) {
+            #bottom-controls-overlay {
+                padding: 0 max(20px, env(safe-area-inset-right)) 8px max(20px, env(safe-area-inset-left));
+            }
+            #controls { 
+                max-width: none; 
+                justify-content: space-between; 
+            }
+        }
+
         @media (orientation: landscape) and (max-height: 450px) {
             #start-menu { 
                 padding: 10px 20px; 
@@ -348,8 +361,7 @@
             #joystick-container { width: 138px; height: 138px; }
             #joystick-knob { width: 54px; height: 54px; }
             #btn-boop { width: 88px; height: 88px; font-size: 13px; }
-            #bottom-controls-overlay { padding: 0 14px 6px; }
-            #controls { max-width: none; }
+            #bottom-controls-overlay { padding-bottom: 6px; }
             #boss-hud { top: 55px; width: 200px; }
         }
     </style>
@@ -383,7 +395,7 @@
 
     <div id="viewport">
         <button id="pause-toggle" class="util-btn" onclick="togglePause()">⏸️</button>
-        <button id="fullscreen-toggle" class="util-btn" onclick="toggleFullscreen()">🖥️</button>
+        <button id="fullscreen-toggle" class="util-btn">🖥️</button>
 
         <canvas id="c"></canvas>
         <div id="vignette"></div>
@@ -536,11 +548,19 @@ function toggleFullscreen() {
     const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
     const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
     if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-        requestFullScreen.call(docEl);
+        if (requestFullScreen) requestFullScreen.call(docEl);
     } else {
-        cancelFullScreen.call(doc);
+        if (cancelFullScreen) cancelFullScreen.call(doc);
     }
 }
+
+// Fullscreen fix for touch devices
+const fsBtn = document.getElementById('fullscreen-toggle');
+fsBtn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFullscreen();
+});
 
 function selectDifficulty(mult) {
     difficultyMult = mult;
@@ -828,7 +848,7 @@ function update() {
     if (joyActive) {
         let fwd = joyForward * moveSpeed * 1.05;
         player.dir += joyTurn * 0.085;
-        if (Math.abs(fwd) > 0.01) {
+        if (fwd > 0.01 || fwd < -0.01) {
             let fwdDx = Math.cos(player.dir) * fwd; let fwdDy = Math.sin(player.dir) * fwd;
             if (canMove(player.x + fwdDx, player.y)) player.x += fwdDx;
             if (canMove(player.x, player.y + fwdDy)) player.y += fwdDy;
